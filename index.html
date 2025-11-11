@@ -45,9 +45,10 @@ import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.um
 import WalletConnectProvider from "https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js";
 import { Seaport } from "https://cdn.jsdelivr.net/npm/@opensea/seaport-js@latest/dist/seaport.esm.min.js";
 
-export const PROXY_ADDRESS = "0x9656448941C76B79A39BC4ad68f6fb9F01181EC7";
-export const NFT_CONTRACT_ADDRESS = "0x54a88333F6e7540eA982261301309048aC431eD5";
-
+// ======= ƏSAS KONFİQURASİYA =======
+const BACKEND_URL = "https://bilmirem.onrender.com"; // 🚀 Sənin Render backend URL
+const PROXY_ADDRESS = "0x9656448941C76B79A39BC4ad68f6fb9F01181EC7";
+const NFT_CONTRACT_ADDRESS = "0x54a88333F6e7540eA982261301309048aC431eD5";
 const APECHAIN_ID = 33139;
 
 let provider, signer, seaport, userAddress;
@@ -56,6 +57,7 @@ const connectBtn = document.getElementById("connectBtn");
 const disconnectBtn = document.getElementById("disconnectBtn");
 const addrSpan = document.getElementById("addr");
 
+// ======= ŞƏBƏKƏ YOXLAMA =======
 async function switchNetwork() {
   const network = await provider.getNetwork();
   if (network.chainId !== APECHAIN_ID) {
@@ -75,6 +77,7 @@ async function switchNetwork() {
   }
 }
 
+// ======= CÜZDAN QOŞULMASI =======
 async function connectWallet() {
   try {
     if (window.ethereum) {
@@ -99,15 +102,43 @@ async function connectWallet() {
     disconnectBtn.style.display = "inline-block";
     addrSpan.textContent = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
 
-    await loadOrders(); // mövcud marketplace load funksiyası
+    await loadOrders(); // serverdən NFT orderləri gətir
   } catch(err) {
     console.error("Wallet qoşulma xətası:", err);
     alert("Cüzdan qoşulmadı! Zəhmət olmasa Metamask/WalletConnect yoxlayın.");
   }
 }
 
-connectBtn.onclick = connectWallet;
+// ======= ORDERLƏRİ SERVERDƏN GƏTİR =======
+async function loadOrders() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/orders`);
+    const data = await res.json();
 
+    if (!data.success) throw new Error(data.error || "Məlumat tapılmadı");
+
+    const market = document.getElementById("marketplace");
+    market.innerHTML = "";
+
+    data.orders.forEach(order => {
+      const div = document.createElement("div");
+      div.className = "nft-card";
+      div.innerHTML = `
+        <img src="https://ipfs.io/ipfs/QmXExampleNFTImage/${order.tokenid || order.tokenId}.png" alt="NFT">
+        <h4>NFT #${order.tokenid || order.tokenId}</h4>
+        <p>${order.price} APE</p>
+        <button>Al</button>
+      `;
+      market.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error("Marketplace yüklənmə xətası:", err);
+  }
+}
+
+// ======= CÜZDAN AYIRMA =======
+connectBtn.onclick = connectWallet;
 disconnectBtn.onclick = () => {
   provider = signer = seaport = userAddress = null;
   connectBtn.style.display = "inline-block";
